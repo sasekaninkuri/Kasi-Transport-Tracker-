@@ -42,6 +42,58 @@ def create_tables():
         trip_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """
+    
+    
+    cursor.execute(create_drivers_table)
+    cursor.execute(create_drivers_routes_table)
+    cursor.execute(create_trips_table)
+    
+    conn.commit()
+    print("Tables created successfully")
+    cursor.close()
+    conn.close()    
+    
+    # ------------------- DAILY REPORT -------------------
+def daily_report(cursor):
+    cursor.execute("""
+        SELECT d.name, SUM(t.passengers) AS total_passengers, SUM(t.total_amount) AS total_earnings
+        FROM trips t
+        JOIN drivers d ON t.driver_id = d.id
+        WHERE t.trip_date >= CURRENT_DATE
+        GROUP BY d.name;
+    """)
+    return cursor.fetchall()
+
+# ------------------- SEARCH DRIVER -------------------
+def search_driver(cursor, keyword):
+    cursor.execute("""
+        SELECT id, name, taxi_number
+        FROM drivers
+        WHERE name ILIKE %s OR taxi_number ILIKE %s
+    """, (f"%{keyword}%", f"%{keyword}%"))
+    return cursor.fetchall()
+
+# ------------------- SEARCH ROUTE -------------------
+def search_route(cursor, keyword):
+    cursor.execute("""
+        SELECT id, origin, destination, fare
+        FROM drivers_routes
+        WHERE origin ILIKE %s OR destination ILIKE %s
+    """, (f"%{keyword}%", f"%{keyword}%"))
+    return cursor.fetchall()
+
+# ------------------- TOP EARNING DRIVER -------------------
+def top_earning_driver(cursor):
+    cursor.execute("""
+        SELECT d.name, SUM(t.total_amount) AS total_earnings
+        FROM trips t
+        JOIN drivers d ON t.driver_id = d.id
+        WHERE t.trip_date >= CURRENT_DATE
+        GROUP BY d.name
+        ORDER BY total_earnings DESC
+        LIMIT 1;
+    """)
+    return cursor.fetchone()
 
 
     cursor.execute(create_drivers_table)
