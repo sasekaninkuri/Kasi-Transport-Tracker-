@@ -73,24 +73,29 @@ def add_route(cursor, origin, destination, fare):
         
         
 
-def record_trip(cursor,driver_id, route_id, passengers):  
-        cursor.execute( """
-                insert into trips (driver_id, route_id, passengers, total_amount) values
-                (%s, %s, %s, 
-                (select fare from drivers_routes where id = %s))""",
-                    (driver_id, route_id, passengers, route_id)
-            )
+def record_trip(cursor, driver_id, route_id, passengers):  
+    cursor.execute("SELECT fare FROM drivers_routes WHERE id = %s", (route_id,))
+    fare = cursor.fetchone()
+    
+    if fare is None:
+        raise ValueError("Route ID does not exist.")
+    
+    fare = fare[0]  
+    total_amount = fare * passengers  
 
-        fare, total_amount = cursor.fetchone()
+    cursor.execute( """
+        INSERT INTO trips (driver_id, route_id, passengers, total_amount) VALUES
+        (%s, %s, %s, %s)""",
+        (driver_id, route_id, passengers, total_amount)
+    )
 
-        total_amount = fare * passengers
-        trip_record ={
-                "driver_id": driver_id,
-                "route_id": route_id,
-                "passengers": passengers,
-                "total_amount": total_amount
-            }
-        return trip_record
+    trip_record = {
+        "driver_id": driver_id,
+        "route_id": route_id,
+        "passengers": passengers,
+        "total_amount": total_amount
+    }
+    return trip_record
 
 
 def daily_report(cursor):

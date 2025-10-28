@@ -1,23 +1,15 @@
 import psycopg2
 from db_setup import create_connection, create_tables
-from db_setup import add_driver
-from db_setup import add_route
-from db_setup import record_trip
-from db_setup import daily_report
+from db_setup import add_driver, add_route, record_trip
 
-
-
-
-
-def register_driver(name, taxi_number):
-    conn= create_connection()
+def register_driver():
+    conn = create_connection()
     cursor = conn.cursor()
     
     name = input("Enter driver's name: ")
     taxi_number = input("Enter taxi number: ")
 
     add_driver(cursor, name, taxi_number)
-    
     
     try:
         print(f"Driver {name} with taxi number {taxi_number} registered successfully.")
@@ -28,12 +20,11 @@ def register_driver(name, taxi_number):
         conn.commit()
         cursor.close()
         conn.close()
-        
-        
-def register_new_route():
-    conn= create_connection()
-    cursor = conn.cursor()
 
+
+def register_new_route():
+    conn = create_connection()
+    cursor = conn.cursor()
 
     origin = input("Enter the origin: ")
     destination = input("Enter the destination: ")
@@ -42,7 +33,7 @@ def register_new_route():
     add_route(cursor, origin, destination, fare)
 
     try:
-            print(f"Route from {origin} to {destination} with fare {fare} added successfully.")
+        print(f"Route from {origin} to {destination} with fare {fare} added successfully.")
     except Exception as e:
         print(f"Error adding route: {e}")
     finally:
@@ -51,52 +42,75 @@ def register_new_route():
         conn.close()
 
 
-        
 def log_trip():
-    conn= create_connection()
+    conn = create_connection()
     cursor = conn.cursor()
 
-    driver_id = int(input("Enter driver ID: "))
-    route_id = int(input("Enter route ID: "))
-    passengers = int(input("Enter number of passengers: "))
+    # Get driver ID
+    while True:
+        try:
+            driver_id = int(input("Enter driver ID: "))
+            if driver_id <= 0:
+                print("Driver ID must be positive.")
+                continue
 
-    trip_record = record_trip(cursor, driver_id, route_id, passengers)
-    
+            # Check if driver exists
+            cursor.execute("SELECT COUNT(*) FROM drivers WHERE id = %s", (driver_id,))
+            if cursor.fetchone()[0] == 0:
+                print(f"Driver ID {driver_id} does not exist. Please enter a valid driver ID.")
+                continue
+            break
+        except ValueError:
+            print("Invalid input. Please enter a number for driver ID.")
+
+    # Get route ID
+    while True:
+        try:
+            route_id = int(input("Enter route ID: "))
+            if route_id <= 0:
+                print("Route ID must be positive.")
+                continue
+
+            # Check if route exists in drivers_routes table
+            cursor.execute("SELECT COUNT(*) FROM drivers_routes WHERE id = %s", (route_id,))
+            if cursor.fetchone()[0] == 0:
+                print(f"Route ID {route_id} does not exist. Please enter a valid route ID.")
+                continue
+            break
+        except ValueError:
+            print("Invalid input. Please enter a number for route ID.")
+
+    # Get number of passengers
+    while True:
+        try:
+            passengers = int(input("Enter number of passengers: "))
+            if passengers < 0:
+                print("Number of passengers cannot be negative.")
+                continue
+            break
+        except ValueError:
+            print("Invalid input. Please enter a valid integer for passengers.")
+
+    # Record the trip
     try:
+        trip_record = record_trip(cursor, driver_id, route_id, passengers)
         print(f"Trip logged successfully: {trip_record}")
     except Exception as e:
         print(f"Error logging trip: {e}")
-        
     finally:
         conn.commit()
         cursor.close()
         conn.close()
-        
-        
-def daily_report(): 
-    conn= create_connection()
-    cursor = conn.cursor()
 
-    trips = cursor.fetchall()
+def daily_report():
+    print("Daily Trip Report: This feature is currently unavailable.")
 
-    print("Daily Trip Report:")
-    for trip in trips:
-        name, origin, destination, passengers, total_amount = trip
-        print(f"Driver: {name}, Route: {origin} to {destination}, Passengers: {passengers}, Total Amount: {total_amount}")
-
-    cursor.close()
-    conn.close()
-    
-    
-
-    
-        
 
 def main():
-        print(" Sawubona! Welcome to Kasi Transport Tracker!")
-create_tables()
-menu = {
-
+    print("Sawubona! Welcome to Kasi Transport Tracker!")
+    create_tables()
+    
+    menu = {
         "1": "Register Driver",
         "2": "Register New Route",
         "3": "Log Trip",
@@ -104,7 +118,7 @@ menu = {
         "5": "Exit"
     }
 
-while True:
+    while True:
         print("\nMenu:")
         for key, value in menu.items():
             print(f"{key}. {value}")
@@ -124,9 +138,7 @@ while True:
             break
         else:
             print("Invalid choice. Please try again.")
-            
-            main()
+
+
 if __name__ == "__main__":
     main()
-
-        
